@@ -1,28 +1,13 @@
-
-
-# -*- coding: utf-8 -*-
-# This program is dedicated to the public domain under the CC0 license.
-
-"""
-Simple Bot to reply to Telegram messages.
-
-First, a few handler functions are defined. Then, those functions are passed to
-the Dispatcher and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-
-Usage:
-Basic Echobot example, repeats messages.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
-"""
-
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import *
 import requests
 import urllib
 from datetime import datetime
 from tinydb import TinyDB, Query
 import logging
 import os
+
+import fuckit
+
 
 token_ = os.environ['token']
 
@@ -89,7 +74,7 @@ def connect(update, context):
 
             if len(filtered_result) > 0:
 
-                connected_host = "You are connected with a stranger! (host)"
+                connected_host = urllib.parse.quote_plus("You are connected with a stranger! (host)")
 
                 queue.update(
                     {"talkingto": filtered_result[0]["userid"]}, s.userid == id)
@@ -100,7 +85,7 @@ def connect(update, context):
 
                 queue.update({"talkingto": id}, s.userid ==
                              filtered_result[0]["userid"])
-                connected_receive = "You are connected with a stranger! (recipient)"
+                connected_receive = urllib.parse.quote_plus("You are connected with a stranger! (recipient)")
 
                 requests.get(
                     f"https://api.telegram.org/bot{token_}/sendMessage?chat_id={talkingto_}&text={connected_receive}")
@@ -134,9 +119,12 @@ def echo(update, context):
 
 def error(update, context):
     """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, context.error)
+    global error_
+    error_ = f"Update {update}, caused error {context.error}"
+    logger.warning(error_)
 
 
+@fuckit
 def disconnect(update, context):
     message = update.message.from_user
 
@@ -144,12 +132,11 @@ def disconnect(update, context):
     if queue.search(s.userid == update.message.from_user["id"])[0]["talkingto"] != None:
         update.message.reply_text("Disconnecting...")
 
-        recipient_id = queue.search(s.userid == id)[0]["talkingto"]
-
+        queue.remove(s.userid == queue.search(s.userid == id)[0]["talkingto"])
         queue.remove(s.userid == id)
-        queue.remove(s.userid == recipient_id)
+        
 
-        text = "Stranger has disonnected! Oof."
+        text = urllib.parse.quote_plus("Stranger has disonnected! Oof.") 
         website = f'https://api.telegram.org/bot{token_}/sendMessage?chat_id={recipient_id}&text={text}'
         requests.get(website)
         update.message.reply_text("You have disconnected ...")
@@ -166,23 +153,23 @@ def leavequeue(update, context):
         update.message.reply_text("Successfuly left the queue.")
 
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 
 def info(update, context):
     info = f"""SGTeens Chatbot (Omegle service) v{__version__}:
-
 Creator: Samuel Cheng
 Server: repl.it
 Location: Singapore
 How to reach me: t.me/fez_tival
-
 /changelog for more info."""
     update.message.reply_text(info)
 
 
 def changelog(update, context):
     changelog = f"""Changelog:
+v1.1 (5/8/2021)
+- Bot is now hosted 24/7 on repl.it thanks to uptimerobot.com
 v1.0 (4/8/2021)
 - Change command names, added /info and /changelog, added more code bits
 v0.5 (4/8/2021)
@@ -190,6 +177,8 @@ v0.5 (4/8/2021)
 """
     update.message.reply_text(changelog)
 
+def reportbug(update, context):
+    pass
 
 def main():
     """Start the bot."""
@@ -226,4 +215,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    with fuckit:
+        main()
