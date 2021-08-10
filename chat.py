@@ -6,8 +6,6 @@ from tinydb import TinyDB, Query
 import logging
 import os
 
-import fuckit
-
 
 token_ = os.environ['token']
 
@@ -48,10 +46,22 @@ def start(update, context):
 
 
 def connect(update, context):
+    """
+connect to the music downloader
+Args:
+ - update,context
+
+Return:
+
+"""
     """Send a message when the command /start is issued."""
     message = update.message.from_user
 
-    id, username = int(message["id"]), message["username"]
+    id = int(message["id"])
+    try:
+        username = message["username"]
+    except:
+        username = "/Unknown"
     if len(db.search(s.userid == id)) == 0:
         update.message.reply_text(welcome)
         db.insert({'userid': id, 'joined': str(datetime.now())})
@@ -74,7 +84,8 @@ def connect(update, context):
 
             if len(filtered_result) > 0:
 
-                connected_host = urllib.parse.quote_plus("You are connected with a stranger! (host)")
+                connected_host = urllib.parse.quote_plus(
+                    "You are connected with a stranger! (host)")
 
                 queue.update(
                     {"talkingto": filtered_result[0]["userid"]}, s.userid == id)
@@ -85,18 +96,35 @@ def connect(update, context):
 
                 queue.update({"talkingto": id}, s.userid ==
                              filtered_result[0]["userid"])
-                connected_receive = urllib.parse.quote_plus("You are connected with a stranger! (recipient)")
+                connected_receive = urllib.parse.quote_plus(
+                    "You are connected with a stranger! (recipient)")
 
                 requests.get(
                     f"https://api.telegram.org/bot{token_}/sendMessage?chat_id={talkingto_}&text={connected_receive}")
 
 
 def help(update, context):
+    """
+help for the update message
+Args:
+ - update,context
+
+Return:
+
+"""
     """Send a message when the command /help is issued."""
     update.message.reply_text(helpstring)
 
 
 def echo(update, context):
+    """
+echo a message to the update queue
+Args:
+ - update,context
+
+Return:
+
+"""
     """Echo the user message."""
     _message = update.message.from_user
     id_, username = int(_message["id"]), _message["username"]
@@ -124,8 +152,14 @@ def error(update, context):
     logger.warning(error_)
 
 
-@fuckit
 def disconnect(update, context):
+    """
+disconnect from music downloader
+Args:
+ - update,context
+
+Return:
+"""
     message = update.message.from_user
 
     id, username = int(message["id"]), message["username"]
@@ -134,9 +168,8 @@ def disconnect(update, context):
 
         queue.remove(s.userid == queue.search(s.userid == id)[0]["talkingto"])
         queue.remove(s.userid == id)
-        
 
-        text = urllib.parse.quote_plus("Stranger has disonnected! Oof.") 
+        text = urllib.parse.quote_plus("Stranger has disonnected! Oof.")
         website = f'https://api.telegram.org/bot{token_}/sendMessage?chat_id={recipient_id}&text={text}'
         requests.get(website)
         update.message.reply_text("You have disconnected ...")
@@ -146,6 +179,14 @@ def disconnect(update, context):
 
 
 def leavequeue(update, context):
+    """
+leave the queue
+Args:
+ - update,context
+
+Return:
+
+"""
     message = update.message.from_user
     id, username = int(message["id"]), message["username"]
     if len(queue.search(s.userid == id)) > 0:
@@ -153,7 +194,7 @@ def leavequeue(update, context):
         update.message.reply_text("Successfuly left the queue.")
 
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 
 def info(update, context):
@@ -168,6 +209,8 @@ How to reach me: t.me/fez_tival
 
 def changelog(update, context):
     changelog = f"""Changelog:
+v1.2 (10/8/2021)
+- Cleared code, fixed empty username bug
 v1.1 (5/8/2021)
 - Bot is now hosted 24/7 on repl.it thanks to uptimerobot.com
 v1.0 (4/8/2021)
@@ -177,8 +220,10 @@ v0.5 (4/8/2021)
 """
     update.message.reply_text(changelog)
 
+
 def reportbug(update, context):
     pass
+
 
 def main():
     """Start the bot."""
@@ -215,5 +260,4 @@ def main():
 
 
 if __name__ == '__main__':
-    with fuckit:
-        main()
+    main()
